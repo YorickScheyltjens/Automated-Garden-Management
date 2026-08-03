@@ -9,6 +9,7 @@ public sealed class Garden
     public string LocationDescription { get; set; } = string.Empty;
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
+    public int TargetHumidityLevel { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? DeletedAtUtc { get; set; }
 }

@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: gardensystem-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gardensystem}
+      POSTGRES_USER: ${POSTGRES_USER:-gardensystem}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gardensystem}
+    ports:
+      - "5433:5432"
+    volumes:
+      - gardensystem-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gardensystem} -d ${POSTGRES_DB:-gardensystem}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: GardenSystem.Api/Dockerfile
+    container_name: gardensystem-api
+    environment:
+      ConnectionStrings__DefaultConnection: ${POSTGRES_CONNECTION_STRING:-Host=db;Port=5432;Database=gardensystem;Username=gardensystem;Password=gardensystem}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  gardensystem-postgres-data:
