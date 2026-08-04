@@ -263,6 +263,185 @@ public sealed class PlantHandlersTests
             handler.Handle(new ListPlantsByGardenIdQuery(Guid.NewGuid()), CancellationToken.None));
     }
 
+    [Fact]
+    public async Task CreatePlantCommandHandler_WhenPlantOverflows_ThrowsOvercrowdingException()
+    {
+        var plantRepositoryMock = new Mock<IPlantRepository>();
+        var gardenRepositoryMock = new Mock<IGardenRepository>();
+        var currentUserProviderMock = BuildCurrentUserProviderMock(CurrentUserId);
+        var gardenId = Guid.NewGuid();
+
+        gardenRepositoryMock
+            .Setup(x => x.GetByIdAsync(gardenId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Garden
+            {
+                GardenId = gardenId,
+                UserId = CurrentUserId,
+                GardenName = "Garden",
+                TotalSurfaceArea = 10m,
+                LocationDescription = "Location",
+                TargetHumidityLevel = 60,
+                CreatedAtUtc = DateTime.UtcNow
+            });
+
+        plantRepositoryMock
+            .Setup(x => x.ListByGardenIdAsync(gardenId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Plant>
+            {
+                CreatePlant(gardenId, 9.8m)
+            });
+
+        var handler = new CreatePlantCommandHandler(
+            plantRepositoryMock.Object,
+            gardenRepositoryMock.Object,
+            currentUserProviderMock.Object);
+
+        await Assert.ThrowsAsync<OvercrowdingException>(() =>
+            handler.Handle(
+                new CreatePlantCommand(
+                    gardenId,
+                    "Tomato",
+                    "Solanum lycopersicum",
+                    PlantType.Vegetable,
+                    new DateOnly(2026, 8, 4),
+                    0.3m,
+                    58),
+                CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task UpdatePlantCommandHandler_WhenUpsizeOverflows_ThrowsOvercrowdingException()
+    {
+        var plantRepositoryMock = new Mock<IPlantRepository>();
+        var gardenRepositoryMock = new Mock<IGardenRepository>();
+        var currentUserProviderMock = BuildCurrentUserProviderMock(CurrentUserId);
+        var plantId = Guid.NewGuid();
+        var gardenId = Guid.NewGuid();
+
+        var plantToUpdate = CreatePlant(gardenId, 2m, plantId);
+
+        plantRepositoryMock
+            .Setup(x => x.GetByIdAsync(plantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(plantToUpdate);
+
+        gardenRepositoryMock
+            .Setup(x => x.GetByIdAsync(gardenId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Garden
+            {
+                GardenId = gardenId,
+                UserId = CurrentUserId,
+                GardenName = "Garden",
+                TotalSurfaceArea = 10m,
+                LocationDescription = "Location",
+                TargetHumidityLevel = 60,
+                CreatedAtUtc = DateTime.UtcNow
+            });
+
+        plantRepositoryMock
+            .Setup(x => x.ListByGardenIdAsync(gardenId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Plant>
+            {
+                plantToUpdate,
+                CreatePlant(gardenId, 8.6m)
+            });
+
+        var handler = new UpdatePlantCommandHandler(
+            plantRepositoryMock.Object,
+            gardenRepositoryMock.Object,
+            currentUserProviderMock.Object);
+
+        await Assert.ThrowsAsync<OvercrowdingException>(() =>
+            handler.Handle(
+                new UpdatePlantCommand(
+                    plantId,
+                    gardenId,
+                    "Tomato",
+                    "Solanum lycopersicum",
+                    PlantType.Vegetable,
+                    new DateOnly(2026, 8, 4),
+                    1.6m,
+                    58),
+                CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task UpdatePlantCommandHandler_WhenUpsizeStillFits_DoesNotThrow()
+    {
+        var plantRepositoryMock = new Mock<IPlantRepository>();
+        var gardenRepositoryMock = new Mock<IGardenRepository>();
+        var currentUserProviderMock = BuildCurrentUserProviderMock(CurrentUserId);
+        var plantId = Guid.NewGuid();
+        var gardenId = Guid.NewGuid();
+
+        var plantToUpdate = CreatePlant(gardenId, 2m, plantId);
+
+        plantRepositoryMock
+            .Setup(x => x.GetByIdAsync(plantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(plantToUpdate);
+
+        gardenRepositoryMock
+            .Setup(x => x.GetByIdAsync(gardenId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Garden
+            {
+                GardenId = gardenId,
+                UserId = CurrentUserId,
+                GardenName = "Garden",
+                TotalSurfaceArea = 10m,
+                LocationDescription = "Location",
+                TargetHumidityLevel = 60,
+                CreatedAtUtc = DateTime.UtcNow
+            });
+
+        plantRepositoryMock
+            .Setup(x => x.ListByGardenIdAsync(gardenId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Plant>
+            {
+                plantToUpdate,
+                CreatePlant(gardenId, 6.7m)
+            });
+
+        plantRepositoryMock
+            .Setup(x => x.UpdateAsync(plantToUpdate, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var handler = new UpdatePlantCommandHandler(
+            plantRepositoryMock.Object,
+            gardenRepositoryMock.Object,
+            currentUserProviderMock.Object);
+
+        var exception = await Record.ExceptionAsync(() =>
+            handler.Handle(
+                new UpdatePlantCommand(
+                    plantId,
+                    gardenId,
+                    "Tomato",
+                    "Solanum lycopersicum",
+                    PlantType.Vegetable,
+                    new DateOnly(2026, 8, 4),
+                    3.3m,
+                    58),
+                CancellationToken.None));
+
+        Assert.Null(exception);
+        plantRepositoryMock.Verify(x => x.UpdateAsync(plantToUpdate, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    private static Plant CreatePlant(Guid gardenId, decimal surfaceAreaRequired, Guid? plantId = null)
+    {
+        return new Plant
+        {
+            PlantId = plantId ?? Guid.NewGuid(),
+            GardenId = gardenId,
+            PlantName = "Plant",
+            Species = "Species",
+            PlantType = PlantType.Vegetable,
+            PlantationDate = new DateOnly(2026, 8, 4),
+            SurfaceAreaRequired = surfaceAreaRequired,
+            IdealHumidityLevel = 60,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+    }
+
     private static Mock<ICurrentUserProvider> BuildCurrentUserProviderMock(Guid userId)
     {
         var currentUserProviderMock = new Mock<ICurrentUserProvider>();

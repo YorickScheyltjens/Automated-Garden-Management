@@ -33,10 +33,12 @@ public sealed class PlantsController(IMediator mediator) : ControllerBase
     /// </summary>
     /// <response code="201">Plant created successfully.</response>
     /// <response code="400">The request payload failed validation.</response>
+    /// <response code="409">The plant does not fit within the garden's available surface area.</response>
     /// <response code="404">The garden was not found.</response>
     [HttpPost("gardens/{gardenId:guid}/plants")]
     [ProducesResponseType(typeof(PlantResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PlantResponseDto>> CreatePlant(
         Guid gardenId,
@@ -78,10 +80,12 @@ public sealed class PlantsController(IMediator mediator) : ControllerBase
     /// </summary>
     /// <response code="200">Plant updated successfully.</response>
     /// <response code="400">The request payload failed validation.</response>
+    /// <response code="409">The updated plant does not fit within the garden's available surface area.</response>
     /// <response code="404">The plant or garden was not found.</response>
     [HttpPut("plants/{id:guid}")]
     [ProducesResponseType(typeof(PlantResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PlantResponseDto>> UpdatePlant(
         Guid id,

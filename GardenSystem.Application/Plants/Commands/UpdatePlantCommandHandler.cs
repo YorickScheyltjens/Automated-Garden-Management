@@ -2,6 +2,7 @@ using GardenSystem.Application.Abstractions;
 using GardenSystem.Application.Repositories;
 using GardenSystem.Domain.Exceptions;
 using MediatR;
+using System.Globalization;
 
 namespace GardenSystem.Application.Plants.Commands;
 
@@ -28,6 +29,25 @@ public sealed class UpdatePlantCommandHandler(
         if (existingGarden is null || existingGarden.UserId != currentUserProvider.GetCurrentUserId())
         {
             throw new NotFoundException($"Plant with id '{request.PlantId}' was not found.");
+        }
+
+        var plantsInTargetGarden = await plantRepository.ListByGardenIdAsync(request.GardenId, cancellationToken) ?? [];
+        var existingPlantsExcludingUpdated = plantsInTargetGarden
+            .Where(existingPlant => existingPlant.PlantId != request.PlantId)
+            .ToList();
+
+        if (!targetGarden.CanFitPlant(existingPlantsExcludingUpdated, request.SurfaceAreaRequired))
+        {
+            var usedSurfaceArea = existingPlantsExcludingUpdated
+                .Where(existingPlant => existingPlant.DeletedAtUtc is null)
+                .Sum(existingPlant => existingPlant.SurfaceAreaRequired);
+
+            var remainingSurfaceArea = targetGarden.TotalSurfaceArea - usedSurfaceArea;
+
+            throw new OvercrowdingException(
+                $"Adding this plant requires {request.SurfaceAreaRequired.ToString("0.##", CultureInfo.InvariantCulture)}m2, " +
+                $"but only {remainingSurfaceArea.ToString("0.##", CultureInfo.InvariantCulture)}m2 of the " +
+                $"{targetGarden.TotalSurfaceArea.ToString("0.##", CultureInfo.InvariantCulture)}m2 garden remains available.");
         }
 
         plant.GardenId = request.GardenId;

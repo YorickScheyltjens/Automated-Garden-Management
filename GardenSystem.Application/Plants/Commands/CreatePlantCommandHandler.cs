@@ -3,6 +3,7 @@ using GardenSystem.Application.Repositories;
 using GardenSystem.Domain.Entities;
 using GardenSystem.Domain.Exceptions;
 using MediatR;
+using System.Globalization;
 
 namespace GardenSystem.Application.Plants.Commands;
 
@@ -18,6 +19,21 @@ public sealed class CreatePlantCommandHandler(
         if (garden is null || garden.UserId != currentUserProvider.GetCurrentUserId())
         {
             throw new NotFoundException($"Garden with id '{request.GardenId}' was not found.");
+        }
+
+        var existingPlants = await plantRepository.ListByGardenIdAsync(request.GardenId, cancellationToken) ?? [];
+        if (!garden.CanFitPlant(existingPlants, request.SurfaceAreaRequired))
+        {
+            var usedSurfaceArea = existingPlants
+                .Where(plant => plant.DeletedAtUtc is null)
+                .Sum(plant => plant.SurfaceAreaRequired);
+
+            var remainingSurfaceArea = garden.TotalSurfaceArea - usedSurfaceArea;
+
+            throw new OvercrowdingException(
+                $"Adding this plant requires {request.SurfaceAreaRequired.ToString("0.##", CultureInfo.InvariantCulture)}m2, " +
+                $"but only {remainingSurfaceArea.ToString("0.##", CultureInfo.InvariantCulture)}m2 of the " +
+                $"{garden.TotalSurfaceArea.ToString("0.##", CultureInfo.InvariantCulture)}m2 garden remains available.");
         }
 
         var plant = new Plant

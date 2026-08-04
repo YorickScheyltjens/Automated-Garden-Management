@@ -4,6 +4,7 @@ using GardenSystem.Application.Gardens.Dtos;
 using GardenSystem.Application.Plants.Dtos;
 using GardenSystem.Domain.Entities;
 using GardenSystem.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -128,6 +129,65 @@ public sealed class PlantEndpointsIntegrationTests : IAsyncLifetime
         var plantsAfterDelete = await listAfterDeleteResponse.Content.ReadFromJsonAsync<List<PlantResponseDto>>();
         Assert.NotNull(plantsAfterDelete);
         Assert.DoesNotContain(plantsAfterDelete!, plant => plant.PlantId == createdPlant.PlantId);
+    }
+
+    [Fact]
+    public async Task CreatePlant_WhenGardenIsFull_ReturnsConflictWithNumericDetails()
+    {
+        var client = _client ?? throw new InvalidOperationException("Test client was not initialized.");
+
+        var createGardenRequest = new CreateGardenRequestDto
+        {
+            GardenName = "Capacity Garden",
+            TotalSurfaceArea = 10m,
+            LocationDescription = "Integration Location",
+            Latitude = 51.2194m,
+            Longitude = 4.4025m,
+            TargetHumidityLevel = 60
+        };
+
+        var createGardenResponse = await client.PostAsJsonAsync("/api/v1/gardens", createGardenRequest);
+        Assert.Equal(HttpStatusCode.Created, createGardenResponse.StatusCode);
+
+        var createdGarden = await createGardenResponse.Content.ReadFromJsonAsync<GardenResponseDto>();
+        Assert.NotNull(createdGarden);
+
+        var firstPlantResponse = await client.PostAsJsonAsync(
+            $"/api/v1/gardens/{createdGarden!.GardenId}/plants",
+            new CreatePlantRequestDto
+            {
+                GardenId = createdGarden.GardenId,
+                PlantName = "Large Plant",
+                Species = "Species A",
+                PlantType = GardenSystem.Domain.Enums.PlantType.Vegetable,
+                PlantationDate = new DateOnly(2026, 8, 4),
+                SurfaceAreaRequired = 9.7m,
+                IdealHumidityLevel = 58
+            });
+
+        Assert.Equal(HttpStatusCode.Created, firstPlantResponse.StatusCode);
+
+        var overflowPlantResponse = await client.PostAsJsonAsync(
+            $"/api/v1/gardens/{createdGarden.GardenId}/plants",
+            new CreatePlantRequestDto
+            {
+                GardenId = createdGarden.GardenId,
+                PlantName = "Overflow Plant",
+                Species = "Species B",
+                PlantType = GardenSystem.Domain.Enums.PlantType.Flower,
+                PlantationDate = new DateOnly(2026, 8, 5),
+                SurfaceAreaRequired = 0.5m,
+                IdealHumidityLevel = 57
+            });
+
+        Assert.Equal(HttpStatusCode.Conflict, overflowPlantResponse.StatusCode);
+
+        var problem = await overflowPlantResponse.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.NotNull(problem);
+        Assert.Equal((int)HttpStatusCode.Conflict, problem!.Status);
+        Assert.Contains("requires 0.5m2", problem.Detail);
+        Assert.Contains("only 0.3m2", problem.Detail);
+        Assert.Contains("10m2 garden", problem.Detail);
     }
 
     private sealed class TestApiFactory(string connectionString) : WebApplicationFactory<Program>
