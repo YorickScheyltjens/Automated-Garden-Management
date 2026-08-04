@@ -12,4 +12,13 @@ public sealed class Garden
     public int TargetHumidityLevel { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? DeletedAtUtc { get; set; }
+
+    public bool CanFitPlant(IEnumerable<Plant> existingPlants, decimal newPlantSurfaceArea)
+    {
+        var usedSurfaceArea = existingPlants
+            .Where(plant => plant.DeletedAtUtc is null)
+            .Sum(plant => plant.SurfaceAreaRequired);
+
+        return usedSurfaceArea + newPlantSurfaceArea <= TotalSurfaceArea;
+    }
 }
