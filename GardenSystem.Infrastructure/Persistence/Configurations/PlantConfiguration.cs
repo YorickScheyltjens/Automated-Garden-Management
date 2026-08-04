@@ -39,6 +39,8 @@ public sealed class PlantConfiguration : IEntityTypeConfiguration<Plant>
         builder.Property(x => x.DeletedAtUtc)
             .IsRequired(false);
 
+        builder.HasQueryFilter(x => x.DeletedAtUtc == null);
+
         builder.HasOne<Garden>()
             .WithMany()
             .HasForeignKey(x => x.GardenId)
