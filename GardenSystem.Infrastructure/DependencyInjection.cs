@@ -1,5 +1,7 @@
+using GardenSystem.Application.Abstractions;
 using GardenSystem.Application.Repositories;
 using GardenSystem.Infrastructure.Persistence.Repositories;
+using GardenSystem.Infrastructure.Security;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GardenSystem.Infrastructure;
@@ -13,6 +15,8 @@ public static class DependencyInjection
         services.AddScoped<IPlantStateRepository, PlantStateRepository>();
         services.AddScoped<IIrrigationEventRepository, IrrigationEventRepository>();
         services.AddScoped<IReportingRepository, ReportingRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 
         return services;
     }

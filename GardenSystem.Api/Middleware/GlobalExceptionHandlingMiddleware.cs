@@ -24,6 +24,7 @@ public sealed class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILog
             ValidationException => (StatusCodes.Status400BadRequest, "Validation error"),
             NotFoundException => (StatusCodes.Status404NotFound, "Resource not found"),
             OvercrowdingException => (StatusCodes.Status409Conflict, "Business rule conflict"),
+            ConflictException => (StatusCodes.Status409Conflict, "Resource conflict"),
             _ => (StatusCodes.Status500InternalServerError, "Internal Server Error")
         };
 
