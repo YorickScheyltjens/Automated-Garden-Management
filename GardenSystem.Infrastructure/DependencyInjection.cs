@@ -10,6 +10,7 @@ public static class DependencyInjection
     {
         services.AddScoped<IGardenRepository, GardenRepository>();
         services.AddScoped<IPlantRepository, PlantRepository>();
+        services.AddScoped<IPlantStateRepository, PlantStateRepository>();
 
         return services;
     }

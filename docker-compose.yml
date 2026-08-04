@@ -64,5 +64,22 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  telemetry-consumer:
+    build:
+      context: .
+      dockerfile: GardenSystem.TelemetryConsumer/Dockerfile
+    container_name: gardensystem-telemetry-consumer
+    environment:
+      ConnectionStrings__DefaultConnection: ${POSTGRES_CONNECTION_STRING:-Host=db;Port=5432;Database=gardensystem;Username=gardensystem;Password=gardensystem}
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Port: 5672
+      RabbitMq__Username: ${RABBITMQ_USER:-gardensystem}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD:-gardensystem}
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
 volumes:
   gardensystem-postgres-data:

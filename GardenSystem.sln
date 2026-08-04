@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GardenSystem.Domain.Tests",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GardenSystem.SensorSimulator", "GardenSystem.SensorSimulator\GardenSystem.SensorSimulator.csproj", "{CD65D964-9EEC-4578-8978-B113CEB01878}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GardenSystem.TelemetryConsumer", "GardenSystem.TelemetryConsumer\GardenSystem.TelemetryConsumer.csproj", "{12676FC3-DF0C-4493-943C-754A22D264FE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -125,6 +127,18 @@ Global
 		{CD65D964-9EEC-4578-8978-B113CEB01878}.Release|x64.Build.0 = Release|Any CPU
 		{CD65D964-9EEC-4578-8978-B113CEB01878}.Release|x86.ActiveCfg = Release|Any CPU
 		{CD65D964-9EEC-4578-8978-B113CEB01878}.Release|x86.Build.0 = Release|Any CPU
+		{12676FC3-DF0C-4493-943C-754A22D264FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{12676FC3-DF0C-4493-943C-754A22D264FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{12676FC3-DF0C-4493-943C-754A22D264FE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{12676FC3-DF0C-4493-943C-754A22D264FE}.Debug|x64.Build.0 = Debug|Any CPU
+		{12676FC3-DF0C-4493-943C-754A22D264FE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{12676FC3-DF0C-4493-943C-754A22D264FE}.Debug|x86.Build.0 = Debug|Any CPU
+		{12676FC3-DF0C-4493-943C-754A22D264FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{12676FC3-DF0C-4493-943C-754A22D264FE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{12676FC3-DF0C-4493-943C-754A22D264FE}.Release|x64.ActiveCfg = Release|Any CPU
+		{12676FC3-DF0C-4493-943C-754A22D264FE}.Release|x64.Build.0 = Release|Any CPU
+		{12676FC3-DF0C-4493-943C-754A22D264FE}.Release|x86.ActiveCfg = Release|Any CPU
+		{12676FC3-DF0C-4493-943C-754A22D264FE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

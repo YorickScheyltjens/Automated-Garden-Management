@@ -8,6 +8,7 @@ public sealed class GardenDbContext(DbContextOptions<GardenDbContext> options) :
     public DbSet<User> Users => Set<User>();
     public DbSet<Garden> Gardens => Set<Garden>();
     public DbSet<Plant> Plants => Set<Plant>();
+    public DbSet<PlantState> PlantStates => Set<PlantState>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
