@@ -193,5 +193,70 @@ public sealed class TelemetryConsumerIntegrationTests : IAsyncLifetime
         Assert.NotNull(plantState);
         Assert.True(plantState!.IsCurrentlyIrrigating);
         Assert.Equal(40m, plantState.CurrentHumidityLevel);
+
+        IrrigationEvent? openIrrigationEvent = null;
+        for (var attempt = 0; attempt < 40 && openIrrigationEvent is null; attempt++)
+        {
+            await using var scope = host.Services.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<GardenDbContext>();
+            openIrrigationEvent = await dbContext.IrrigationEvents.FirstOrDefaultAsync(e => e.PlantId == plantId);
+
+            if (openIrrigationEvent is null)
+            {
+                await Task.Delay(500);
+            }
+        }
+
+        Assert.NotNull(openIrrigationEvent);
+        Assert.Equal(40m, openIrrigationEvent!.HumidityBefore);
+        Assert.Null(openIrrigationEvent.EndTimeUtc);
+        Assert.Null(openIrrigationEvent.HumidityAfter);
+
+        var recoveryCompletedPayload = JsonSerializer.Serialize(new
+        {
+            PlantId = plantId,
+            CurrentHumidityLevel = 56m,
+            IsCurrentlyIrrigating = false,
+            TimestampUtc = DateTime.UtcNow
+        });
+
+        await testChannel.BasicPublishAsync(
+            exchange: "amq.topic",
+            routingKey: $"sensors.{plantId}.telemetry",
+            body: Encoding.UTF8.GetBytes(recoveryCompletedPayload));
+
+        IrrigationEvent? closedIrrigationEvent = null;
+        for (var attempt = 0; attempt < 40 && closedIrrigationEvent?.EndTimeUtc is null; attempt++)
+        {
+            await using var scope = host.Services.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<GardenDbContext>();
+            closedIrrigationEvent = await dbContext.IrrigationEvents.FirstOrDefaultAsync(e => e.PlantId == plantId);
+
+            if (closedIrrigationEvent?.EndTimeUtc is null)
+            {
+                await Task.Delay(500);
+            }
+        }
+
+        Assert.NotNull(closedIrrigationEvent);
+        Assert.NotNull(closedIrrigationEvent!.EndTimeUtc);
+        Assert.Equal(56m, closedIrrigationEvent.HumidityAfter);
+
+        PlantState? finalPlantState = null;
+        for (var attempt = 0; attempt < 40 && finalPlantState?.IsCurrentlyIrrigating != false; attempt++)
+        {
+            await using var scope = host.Services.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<GardenDbContext>();
+            finalPlantState = await dbContext.PlantStates.FirstOrDefaultAsync(p => p.PlantId == plantId);
+
+            if (finalPlantState?.IsCurrentlyIrrigating != false)
+            {
+                await Task.Delay(500);
+            }
+        }
+
+        Assert.NotNull(finalPlantState);
+        Assert.False(finalPlantState!.IsCurrentlyIrrigating);
+        Assert.Equal(56m, finalPlantState.CurrentHumidityLevel);
     }
 }

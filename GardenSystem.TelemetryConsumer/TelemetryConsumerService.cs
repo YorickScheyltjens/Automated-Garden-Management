@@ -55,6 +55,7 @@ public sealed class TelemetryConsumerService(
         using var scope = scopeFactory.CreateScope();
         var plantRepository = scope.ServiceProvider.GetRequiredService<IPlantRepository>();
         var plantStateRepository = scope.ServiceProvider.GetRequiredService<IPlantStateRepository>();
+        var irrigationEventRepository = scope.ServiceProvider.GetRequiredService<IIrrigationEventRepository>();
 
         var plant = await plantRepository.GetByIdAsync(message.PlantId, cancellationToken);
         if (plant is null)
@@ -76,6 +77,14 @@ public sealed class TelemetryConsumerService(
             plantState.IsCurrentlyIrrigating = false;
             plantState.LastIrrigationEndTime = DateTime.UtcNow;
 
+            var openIrrigationEvent = await irrigationEventRepository.GetOpenEventByPlantIdAsync(message.PlantId, cancellationToken);
+            if (openIrrigationEvent is not null)
+            {
+                openIrrigationEvent.EndTimeUtc = DateTime.UtcNow;
+                openIrrigationEvent.HumidityAfter = message.CurrentHumidityLevel;
+                await irrigationEventRepository.UpdateAsync(openIrrigationEvent, cancellationToken);
+            }
+
             logger.LogInformation(
                 "Plant {PlantId} finished irrigating, humidity now {CurrentHumidity}%.",
                 message.PlantId,
@@ -87,6 +96,18 @@ public sealed class TelemetryConsumerService(
 
             plantState.IsCurrentlyIrrigating = true;
             plantState.LastIrrigationStartTime = DateTime.UtcNow;
+
+            await irrigationEventRepository.AddAsync(
+                new IrrigationEvent
+                {
+                    IrrigationEventId = Guid.NewGuid(),
+                    PlantId = message.PlantId,
+                    StartTimeUtc = DateTime.UtcNow,
+                    EndTimeUtc = null,
+                    HumidityBefore = message.CurrentHumidityLevel,
+                    HumidityAfter = null
+                },
+                cancellationToken);
 
             logger.LogInformation(
                 "Plant {PlantId} humidity is {CurrentHumidity}%, below ideal {IdealHumidity}% - irrigation command sent.",

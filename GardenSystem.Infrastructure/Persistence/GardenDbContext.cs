@@ -9,6 +9,7 @@ public sealed class GardenDbContext(DbContextOptions<GardenDbContext> options) :
     public DbSet<Garden> Gardens => Set<Garden>();
     public DbSet<Plant> Plants => Set<Plant>();
     public DbSet<PlantState> PlantStates => Set<PlantState>();
+    public DbSet<IrrigationEvent> IrrigationEvents => Set<IrrigationEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
