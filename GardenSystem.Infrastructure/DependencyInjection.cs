@@ -12,6 +12,7 @@ public static class DependencyInjection
         services.AddScoped<IPlantRepository, PlantRepository>();
         services.AddScoped<IPlantStateRepository, PlantStateRepository>();
         services.AddScoped<IIrrigationEventRepository, IrrigationEventRepository>();
+        services.AddScoped<IReportingRepository, ReportingRepository>();
 
         return services;
     }
