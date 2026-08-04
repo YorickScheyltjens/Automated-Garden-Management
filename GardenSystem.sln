@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GardenSystem.Application.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GardenSystem.Domain.Tests", "GardenSystem.Domain.Tests\GardenSystem.Domain.Tests.csproj", "{3089D3DA-7FDB-46C4-9DD2-68084B847F5F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GardenSystem.SensorSimulator", "GardenSystem.SensorSimulator\GardenSystem.SensorSimulator.csproj", "{CD65D964-9EEC-4578-8978-B113CEB01878}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -111,6 +113,18 @@ Global
 		{3089D3DA-7FDB-46C4-9DD2-68084B847F5F}.Release|x64.Build.0 = Release|Any CPU
 		{3089D3DA-7FDB-46C4-9DD2-68084B847F5F}.Release|x86.ActiveCfg = Release|Any CPU
 		{3089D3DA-7FDB-46C4-9DD2-68084B847F5F}.Release|x86.Build.0 = Release|Any CPU
+		{CD65D964-9EEC-4578-8978-B113CEB01878}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD65D964-9EEC-4578-8978-B113CEB01878}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD65D964-9EEC-4578-8978-B113CEB01878}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CD65D964-9EEC-4578-8978-B113CEB01878}.Debug|x64.Build.0 = Debug|Any CPU
+		{CD65D964-9EEC-4578-8978-B113CEB01878}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CD65D964-9EEC-4578-8978-B113CEB01878}.Debug|x86.Build.0 = Debug|Any CPU
+		{CD65D964-9EEC-4578-8978-B113CEB01878}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD65D964-9EEC-4578-8978-B113CEB01878}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD65D964-9EEC-4578-8978-B113CEB01878}.Release|x64.ActiveCfg = Release|Any CPU
+		{CD65D964-9EEC-4578-8978-B113CEB01878}.Release|x64.Build.0 = Release|Any CPU
+		{CD65D964-9EEC-4578-8978-B113CEB01878}.Release|x86.ActiveCfg = Release|Any CPU
+		{CD65D964-9EEC-4578-8978-B113CEB01878}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -47,5 +47,22 @@ services:
       timeout: 5s
       retries: 10
 
+  sensor-simulator:
+    build:
+      context: .
+      dockerfile: GardenSystem.SensorSimulator/Dockerfile
+    container_name: gardensystem-sensor-simulator
+    environment:
+      Api__BaseUrl: http://api:8080
+      Mqtt__Host: rabbitmq
+      Mqtt__Port: 1883
+      Mqtt__Username: ${RABBITMQ_USER:-gardensystem}
+      Mqtt__Password: ${RABBITMQ_PASSWORD:-gardensystem}
+    depends_on:
+      api:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
 volumes:
   gardensystem-postgres-data:
