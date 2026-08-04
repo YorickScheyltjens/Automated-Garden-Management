@@ -29,5 +29,23 @@ services:
       db:
         condition: service_healthy
 
+  rabbitmq:
+    build:
+      context: ./rabbitmq
+      dockerfile: Dockerfile
+    container_name: gardensystem-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-gardensystem}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-gardensystem}
+    ports:
+      - "5673:5672"
+      - "1884:1883"
+      - "15673:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   gardensystem-postgres-data:
