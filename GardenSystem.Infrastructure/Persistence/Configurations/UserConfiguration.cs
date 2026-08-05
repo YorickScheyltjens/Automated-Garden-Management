@@ -48,6 +48,11 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.CreatedAtUtc)
             .IsRequired();
 
+        builder.Property(x => x.DeletedAtUtc)
+            .IsRequired(false);
+
+        builder.HasQueryFilter(x => x.DeletedAtUtc == null);
+
         builder.HasIndex(x => x.Email)
             .IsUnique();
     }

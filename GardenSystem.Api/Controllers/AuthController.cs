@@ -1,6 +1,7 @@
 using GardenSystem.Application.Auth.Commands;
 using GardenSystem.Application.Auth.Dtos;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GardenSystem.Api.Controllers;
@@ -85,5 +86,21 @@ public sealed class AuthController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(command, cancellationToken);
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Soft-deletes the current user's account, cascading to their gardens and plants.
+    /// </summary>
+    /// <response code="204">Account deleted successfully.</response>
+    /// <response code="401">No valid access token was provided.</response>
+    [Authorize]
+    [HttpDelete("me")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> DeleteMe(CancellationToken cancellationToken)
+    {
+        await mediator.Send(new DeleteMeCommand(), cancellationToken);
+
+        return NoContent();
     }
 }

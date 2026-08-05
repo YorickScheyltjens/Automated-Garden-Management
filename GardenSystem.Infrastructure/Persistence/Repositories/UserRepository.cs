@@ -29,4 +29,19 @@ public sealed class UserRepository(GardenDbContext dbContext) : IUserRepository
         dbContext.Users.Update(user);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task SoftDeleteAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await dbContext.Users
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.UserId == userId, cancellationToken);
+
+        if (user is null || user.DeletedAtUtc is not null)
+        {
+            return;
+        }
+
+        user.DeletedAtUtc = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
 }

@@ -387,4 +387,79 @@ public sealed class AuthHandlersTests
             CreatedAtUtc = DateTime.UtcNow
         };
     }
+
+    [Fact]
+    public async Task DeleteMeCommandHandler_WhenUserHasNoGardens_SoftDeletesOnlyTheUser()
+    {
+        var userId = Guid.NewGuid();
+
+        var userRepositoryMock = new Mock<IUserRepository>();
+        var gardenRepositoryMock = new Mock<IGardenRepository>();
+        var plantRepositoryMock = new Mock<IPlantRepository>();
+        var currentUserProviderMock = new Mock<ICurrentUserProvider>();
+
+        currentUserProviderMock.Setup(x => x.GetCurrentUserId()).Returns(userId);
+        gardenRepositoryMock
+            .Setup(x => x.ListByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Garden>());
+
+        var handler = new DeleteMeCommandHandler(
+            userRepositoryMock.Object, gardenRepositoryMock.Object, plantRepositoryMock.Object, currentUserProviderMock.Object);
+
+        await handler.Handle(new DeleteMeCommand(), CancellationToken.None);
+
+        userRepositoryMock.Verify(x => x.SoftDeleteAsync(userId, It.IsAny<CancellationToken>()), Times.Once);
+        gardenRepositoryMock.Verify(x => x.SoftDeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        plantRepositoryMock.Verify(x => x.SoftDeleteAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteMeCommandHandler_CascadesToAllGardensAndPlants()
+    {
+        var userId = Guid.NewGuid();
+        var gardenOneId = Guid.NewGuid();
+        var gardenTwoId = Guid.NewGuid();
+        var plantOneId = Guid.NewGuid();
+        var plantTwoId = Guid.NewGuid();
+
+        var userRepositoryMock = new Mock<IUserRepository>();
+        var gardenRepositoryMock = new Mock<IGardenRepository>();
+        var plantRepositoryMock = new Mock<IPlantRepository>();
+        var currentUserProviderMock = new Mock<ICurrentUserProvider>();
+
+        currentUserProviderMock.Setup(x => x.GetCurrentUserId()).Returns(userId);
+
+        gardenRepositoryMock
+            .Setup(x => x.ListByUserIdAsync(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Garden>
+            {
+                new() { GardenId = gardenOneId, UserId = userId, GardenName = "G1", TotalSurfaceArea = 10m, LocationDescription = "L1", TargetHumidityLevel = 50, CreatedAtUtc = DateTime.UtcNow },
+                new() { GardenId = gardenTwoId, UserId = userId, GardenName = "G2", TotalSurfaceArea = 5m, LocationDescription = "L2", TargetHumidityLevel = 50, CreatedAtUtc = DateTime.UtcNow }
+            });
+
+        plantRepositoryMock
+            .Setup(x => x.ListByGardenIdAsync(gardenOneId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Plant>
+            {
+                new() { PlantId = plantOneId, GardenId = gardenOneId, PlantName = "P1", Species = "S1", SurfaceAreaRequired = 1m, IdealHumidityLevel = 50, CreatedAtUtc = DateTime.UtcNow }
+            });
+
+        plantRepositoryMock
+            .Setup(x => x.ListByGardenIdAsync(gardenTwoId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Plant>
+            {
+                new() { PlantId = plantTwoId, GardenId = gardenTwoId, PlantName = "P2", Species = "S2", SurfaceAreaRequired = 1m, IdealHumidityLevel = 50, CreatedAtUtc = DateTime.UtcNow }
+            });
+
+        var handler = new DeleteMeCommandHandler(
+            userRepositoryMock.Object, gardenRepositoryMock.Object, plantRepositoryMock.Object, currentUserProviderMock.Object);
+
+        await handler.Handle(new DeleteMeCommand(), CancellationToken.None);
+
+        plantRepositoryMock.Verify(x => x.SoftDeleteAsync(plantOneId, It.IsAny<CancellationToken>()), Times.Once);
+        plantRepositoryMock.Verify(x => x.SoftDeleteAsync(plantTwoId, It.IsAny<CancellationToken>()), Times.Once);
+        gardenRepositoryMock.Verify(x => x.SoftDeleteAsync(gardenOneId, It.IsAny<CancellationToken>()), Times.Once);
+        gardenRepositoryMock.Verify(x => x.SoftDeleteAsync(gardenTwoId, It.IsAny<CancellationToken>()), Times.Once);
+        userRepositoryMock.Verify(x => x.SoftDeleteAsync(userId, It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

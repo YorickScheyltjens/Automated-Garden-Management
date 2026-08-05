@@ -13,4 +13,5 @@ public sealed class User
     public string? RefreshTokenHash { get; set; }
     public DateTime? RefreshTokenExpiresAtUtc { get; set; }
     public DateTime CreatedAtUtc { get; set; }
+    public DateTime? DeletedAtUtc { get; set; }
 }

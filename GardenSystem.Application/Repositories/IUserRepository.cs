@@ -8,4 +8,5 @@ public interface IUserRepository
     Task<User?> GetByRefreshTokenHashAsync(string refreshTokenHash, CancellationToken cancellationToken = default);
     Task AddAsync(User user, CancellationToken cancellationToken = default);
     Task UpdateAsync(User user, CancellationToken cancellationToken = default);
+    Task SoftDeleteAsync(Guid userId, CancellationToken cancellationToken = default);
 }
