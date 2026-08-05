@@ -28,4 +28,22 @@ public sealed class AuthController(IMediator mediator) : ControllerBase
 
         return StatusCode(StatusCodes.Status201Created, result);
     }
+
+    /// <summary>
+    /// Verifies a user's email address using the code sent at registration.
+    /// </summary>
+    /// <response code="200">Email verified successfully.</response>
+    /// <response code="400">The request payload failed validation, or the code is invalid or expired.</response>
+    [HttpPost("verify-email")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> VerifyEmail(
+        [FromBody] VerifyEmailRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var command = new VerifyEmailCommand(request.Email, request.Code);
+        await mediator.Send(command, cancellationToken);
+
+        return Ok();
+    }
 }

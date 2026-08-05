@@ -3,6 +3,7 @@ using GardenSystem.Application.Abstractions;
 using GardenSystem.Api.Middleware;
 using GardenSystem.Api.Security;
 using GardenSystem.Infrastructure;
+using GardenSystem.Infrastructure.Configuration;
 using GardenSystem.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -18,6 +19,8 @@ builder.Services.AddDbContext<GardenDbContext>(options => options.UseNpgsql(conn
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure();
 builder.Services.AddScoped<ICurrentUserProvider, SeededCurrentUserProvider>();
+
+builder.Services.AddOptions<SmtpOptions>().Bind(builder.Configuration.GetSection("Smtp"));
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

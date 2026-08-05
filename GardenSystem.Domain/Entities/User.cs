@@ -8,5 +8,7 @@ public sealed class User
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public bool EmailVerified { get; set; }
+    public string? EmailVerificationCodeHash { get; set; }
+    public DateTime? EmailVerificationCodeExpiresAtUtc { get; set; }
     public DateTime CreatedAtUtc { get; set; }
 }

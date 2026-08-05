@@ -33,4 +33,32 @@ public sealed class AuthValidatorsTests
 
         Assert.False(result.IsValid);
     }
+
+    [Fact]
+    public void VerifyEmailCommandValidator_WithValidCommand_IsValid()
+    {
+        var validator = new VerifyEmailCommandValidator();
+        var command = new VerifyEmailCommand("jane.doe@example.com", "123456");
+
+        var result = validator.Validate(command);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Theory]
+    [InlineData("", "123456")]
+    [InlineData("not-an-email", "123456")]
+    [InlineData("jane.doe@example.com", "")]
+    [InlineData("jane.doe@example.com", "12345")]
+    [InlineData("jane.doe@example.com", "1234567")]
+    [InlineData("jane.doe@example.com", "12345a")]
+    public void VerifyEmailCommandValidator_WithInvalidInput_IsInvalid(string email, string code)
+    {
+        var validator = new VerifyEmailCommandValidator();
+        var command = new VerifyEmailCommand(email, code);
+
+        var result = validator.Validate(command);
+
+        Assert.False(result.IsValid);
+    }
 }

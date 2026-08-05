@@ -31,6 +31,13 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.EmailVerified)
             .IsRequired();
 
+        builder.Property(x => x.EmailVerificationCodeHash)
+            .HasMaxLength(200)
+            .IsRequired(false);
+
+        builder.Property(x => x.EmailVerificationCodeExpiresAtUtc)
+            .IsRequired(false);
+
         builder.Property(x => x.CreatedAtUtc)
             .IsRequired();
 

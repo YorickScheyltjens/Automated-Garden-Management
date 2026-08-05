@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using GardenSystem.Application.Abstractions;
 using GardenSystem.Application.Auth.Dtos;
 using GardenSystem.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
@@ -115,7 +116,16 @@ public sealed class AuthEndpointsIntegrationTests : IAsyncLifetime
             {
                 services.RemoveAll<DbContextOptions<GardenDbContext>>();
                 services.AddDbContext<GardenDbContext>(options => options.UseNpgsql(connectionString));
+
+                services.RemoveAll<IEmailSender>();
+                services.AddSingleton<IEmailSender, NoOpEmailSender>();
             });
         }
+    }
+
+    private sealed class NoOpEmailSender : IEmailSender
+    {
+        public Task SendEmailAsync(string toEmail, string subject, string body, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
     }
 }

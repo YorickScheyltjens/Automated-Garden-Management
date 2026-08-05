@@ -1,5 +1,6 @@
 using GardenSystem.Application.Abstractions;
 using GardenSystem.Application.Repositories;
+using GardenSystem.Infrastructure.Email;
 using GardenSystem.Infrastructure.Persistence.Repositories;
 using GardenSystem.Infrastructure.Security;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<IReportingRepository, ReportingRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
 
         return services;
     }

@@ -17,4 +17,10 @@ public sealed class UserRepository(GardenDbContext dbContext) : IUserRepository
         await dbContext.Users.AddAsync(user, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
+    {
+        dbContext.Users.Update(user);
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
 }
