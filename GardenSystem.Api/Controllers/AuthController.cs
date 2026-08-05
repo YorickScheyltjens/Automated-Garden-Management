@@ -46,4 +46,44 @@ public sealed class AuthController(IMediator mediator) : ControllerBase
 
         return Ok();
     }
+
+    /// <summary>
+    /// Logs in a verified user and issues an access and refresh token.
+    /// </summary>
+    /// <response code="200">Login succeeded.</response>
+    /// <response code="400">The request payload failed validation.</response>
+    /// <response code="401">The credentials are invalid, or the email address is not verified.</response>
+    [HttpPost("login")]
+    [ProducesResponseType(typeof(AuthTokensResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<AuthTokensResponseDto>> Login(
+        [FromBody] LoginRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var command = new LoginCommand(request.Email, request.Password);
+        var result = await mediator.Send(command, cancellationToken);
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Exchanges a valid refresh token for a new access and refresh token pair.
+    /// </summary>
+    /// <response code="200">Refresh succeeded.</response>
+    /// <response code="400">The request payload failed validation.</response>
+    /// <response code="401">The refresh token is invalid or has expired.</response>
+    [HttpPost("refresh")]
+    [ProducesResponseType(typeof(AuthTokensResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<AuthTokensResponseDto>> Refresh(
+        [FromBody] RefreshRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var command = new RefreshCommand(request.RefreshToken);
+        var result = await mediator.Send(command, cancellationToken);
+
+        return Ok(result);
+    }
 }

@@ -203,6 +203,161 @@ public sealed class AuthHandlersTests
         Assert.Null(updatedUser.EmailVerificationCodeExpiresAtUtc);
     }
 
+    [Fact]
+    public async Task LoginCommandHandler_WhenUserDoesNotExist_ThrowsAuthentication()
+    {
+        var userRepositoryMock = new Mock<IUserRepository>();
+        var passwordHasherMock = new Mock<IPasswordHasher>();
+        var jwtTokenGeneratorMock = new Mock<IJwtTokenGenerator>();
+
+        userRepositoryMock
+            .Setup(x => x.GetByEmailAsync("unknown@example.com", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+
+        var handler = new LoginCommandHandler(userRepositoryMock.Object, passwordHasherMock.Object, jwtTokenGeneratorMock.Object);
+
+        await Assert.ThrowsAsync<AuthenticationException>(
+            () => handler.Handle(new LoginCommand("unknown@example.com", "whatever"), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task LoginCommandHandler_WhenPasswordIsWrong_ThrowsAuthentication()
+    {
+        var userRepositoryMock = new Mock<IUserRepository>();
+        var passwordHasherMock = new Mock<IPasswordHasher>();
+        var jwtTokenGeneratorMock = new Mock<IJwtTokenGenerator>();
+
+        var user = BuildVerifiedUser();
+        userRepositoryMock.Setup(x => x.GetByEmailAsync(user.Email, It.IsAny<CancellationToken>())).ReturnsAsync(user);
+        passwordHasherMock.Setup(x => x.Verify("wrong", user.PasswordHash)).Returns(false);
+
+        var handler = new LoginCommandHandler(userRepositoryMock.Object, passwordHasherMock.Object, jwtTokenGeneratorMock.Object);
+
+        await Assert.ThrowsAsync<AuthenticationException>(
+            () => handler.Handle(new LoginCommand(user.Email, "wrong"), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task LoginCommandHandler_WhenEmailNotVerified_ThrowsAuthentication()
+    {
+        var userRepositoryMock = new Mock<IUserRepository>();
+        var passwordHasherMock = new Mock<IPasswordHasher>();
+        var jwtTokenGeneratorMock = new Mock<IJwtTokenGenerator>();
+
+        var user = BuildVerifiedUser();
+        user.EmailVerified = false;
+        userRepositoryMock.Setup(x => x.GetByEmailAsync(user.Email, It.IsAny<CancellationToken>())).ReturnsAsync(user);
+        passwordHasherMock.Setup(x => x.Verify("correct", user.PasswordHash)).Returns(true);
+
+        var handler = new LoginCommandHandler(userRepositoryMock.Object, passwordHasherMock.Object, jwtTokenGeneratorMock.Object);
+
+        await Assert.ThrowsAsync<AuthenticationException>(
+            () => handler.Handle(new LoginCommand(user.Email, "correct"), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task LoginCommandHandler_WithValidCredentials_ReturnsTokensAndStoresHashedRefreshToken()
+    {
+        var userRepositoryMock = new Mock<IUserRepository>();
+        var passwordHasherMock = new Mock<IPasswordHasher>();
+        var jwtTokenGeneratorMock = new Mock<IJwtTokenGenerator>();
+
+        var user = BuildVerifiedUser();
+        userRepositoryMock.Setup(x => x.GetByEmailAsync(user.Email, It.IsAny<CancellationToken>())).ReturnsAsync(user);
+        passwordHasherMock.Setup(x => x.Verify("correct", user.PasswordHash)).Returns(true);
+        jwtTokenGeneratorMock.Setup(x => x.GenerateAccessToken(user.UserId, user.Email)).Returns("access-token-123");
+
+        User? updatedUser = null;
+        userRepositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .Callback<User, CancellationToken>((updated, _) => updatedUser = updated)
+            .Returns(Task.CompletedTask);
+
+        var handler = new LoginCommandHandler(userRepositoryMock.Object, passwordHasherMock.Object, jwtTokenGeneratorMock.Object);
+
+        var before = DateTime.UtcNow;
+        var result = await handler.Handle(new LoginCommand(user.Email, "correct"), CancellationToken.None);
+        var after = DateTime.UtcNow;
+
+        Assert.Equal("access-token-123", result.AccessToken);
+        Assert.NotEmpty(result.RefreshToken);
+
+        Assert.NotNull(updatedUser);
+        Assert.NotNull(updatedUser!.RefreshTokenHash);
+        Assert.NotEqual(result.RefreshToken, updatedUser.RefreshTokenHash);
+        Assert.NotNull(updatedUser.RefreshTokenExpiresAtUtc);
+        Assert.InRange(updatedUser.RefreshTokenExpiresAtUtc!.Value, before.AddDays(7).AddSeconds(-2), after.AddDays(7).AddSeconds(2));
+    }
+
+    [Fact]
+    public async Task RefreshCommandHandler_WhenTokenNotFound_ThrowsAuthentication()
+    {
+        var userRepositoryMock = new Mock<IUserRepository>();
+        var jwtTokenGeneratorMock = new Mock<IJwtTokenGenerator>();
+
+        userRepositoryMock
+            .Setup(x => x.GetByRefreshTokenHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User?)null);
+
+        var handler = new RefreshCommandHandler(userRepositoryMock.Object, jwtTokenGeneratorMock.Object);
+
+        await Assert.ThrowsAsync<AuthenticationException>(
+            () => handler.Handle(new RefreshCommand("some-token"), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task RefreshCommandHandler_WhenTokenExpired_ThrowsAuthentication()
+    {
+        var userRepositoryMock = new Mock<IUserRepository>();
+        var jwtTokenGeneratorMock = new Mock<IJwtTokenGenerator>();
+
+        var user = BuildVerifiedUser();
+        user.RefreshTokenHash = "some-hash";
+        user.RefreshTokenExpiresAtUtc = DateTime.UtcNow.AddMinutes(-1);
+
+        userRepositoryMock
+            .Setup(x => x.GetByRefreshTokenHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        var handler = new RefreshCommandHandler(userRepositoryMock.Object, jwtTokenGeneratorMock.Object);
+
+        await Assert.ThrowsAsync<AuthenticationException>(
+            () => handler.Handle(new RefreshCommand("some-token"), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task RefreshCommandHandler_WithValidToken_RotatesRefreshTokenAndReturnsNewAccessToken()
+    {
+        var userRepositoryMock = new Mock<IUserRepository>();
+        var jwtTokenGeneratorMock = new Mock<IJwtTokenGenerator>();
+
+        var user = BuildVerifiedUser();
+        user.RefreshTokenHash = "old-hash";
+        user.RefreshTokenExpiresAtUtc = DateTime.UtcNow.AddDays(1);
+
+        userRepositoryMock
+            .Setup(x => x.GetByRefreshTokenHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+
+        jwtTokenGeneratorMock.Setup(x => x.GenerateAccessToken(user.UserId, user.Email)).Returns("new-access-token");
+
+        User? updatedUser = null;
+        userRepositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .Callback<User, CancellationToken>((updated, _) => updatedUser = updated)
+            .Returns(Task.CompletedTask);
+
+        var handler = new RefreshCommandHandler(userRepositoryMock.Object, jwtTokenGeneratorMock.Object);
+
+        var result = await handler.Handle(new RefreshCommand("old-plaintext-token"), CancellationToken.None);
+
+        Assert.Equal("new-access-token", result.AccessToken);
+        Assert.NotEmpty(result.RefreshToken);
+
+        Assert.NotNull(updatedUser);
+        Assert.NotEqual("old-hash", updatedUser!.RefreshTokenHash);
+    }
+
     private static User BuildUserWithVerificationCode(string code, DateTime expiresAtUtc)
     {
         return new User
@@ -215,6 +370,20 @@ public sealed class AuthHandlersTests
             EmailVerified = false,
             EmailVerificationCodeHash = $"hash-of-{code}",
             EmailVerificationCodeExpiresAtUtc = expiresAtUtc,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+    }
+
+    private static User BuildVerifiedUser()
+    {
+        return new User
+        {
+            UserId = Guid.NewGuid(),
+            FirstName = "Jane",
+            LastName = "Doe",
+            Email = "jane.doe@example.com",
+            PasswordHash = "hashed-correct",
+            EmailVerified = true,
             CreatedAtUtc = DateTime.UtcNow
         };
     }

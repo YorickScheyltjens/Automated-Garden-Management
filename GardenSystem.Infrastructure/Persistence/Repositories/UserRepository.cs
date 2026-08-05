@@ -12,6 +12,12 @@ public sealed class UserRepository(GardenDbContext dbContext) : IUserRepository
             .FirstOrDefaultAsync(user => user.Email == email, cancellationToken);
     }
 
+    public async Task<User?> GetByRefreshTokenHashAsync(string refreshTokenHash, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Users
+            .FirstOrDefaultAsync(user => user.RefreshTokenHash == refreshTokenHash, cancellationToken);
+    }
+
     public async Task AddAsync(User user, CancellationToken cancellationToken = default)
     {
         await dbContext.Users.AddAsync(user, cancellationToken);

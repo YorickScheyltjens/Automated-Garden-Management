@@ -10,5 +10,7 @@ public sealed class User
     public bool EmailVerified { get; set; }
     public string? EmailVerificationCodeHash { get; set; }
     public DateTime? EmailVerificationCodeExpiresAtUtc { get; set; }
+    public string? RefreshTokenHash { get; set; }
+    public DateTime? RefreshTokenExpiresAtUtc { get; set; }
     public DateTime CreatedAtUtc { get; set; }
 }

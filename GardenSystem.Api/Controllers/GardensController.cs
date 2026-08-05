@@ -2,11 +2,13 @@ using GardenSystem.Application.Gardens.Commands;
 using GardenSystem.Application.Gardens.Dtos;
 using GardenSystem.Application.Gardens.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GardenSystem.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/v1/gardens")]
 public sealed class GardensController(IMediator mediator) : ControllerBase
 {

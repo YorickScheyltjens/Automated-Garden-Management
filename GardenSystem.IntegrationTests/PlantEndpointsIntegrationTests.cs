@@ -1,5 +1,7 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using GardenSystem.Application.Abstractions;
 using GardenSystem.Application.Gardens.Dtos;
 using GardenSystem.Application.Plants.Dtos;
 using GardenSystem.Domain.Entities;
@@ -16,6 +18,7 @@ namespace GardenSystem.IntegrationTests;
 public sealed class PlantEndpointsIntegrationTests : IAsyncLifetime
 {
     private static readonly Guid SeededUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+    private static readonly Guid OtherUserId = Guid.Parse("00000000-0000-0000-0000-000000000002");
 
     private readonly PostgreSqlContainer _postgresContainer = new PostgreSqlBuilder("postgres:16-alpine")
         .WithDatabase("gardensystem_api_tests")
@@ -44,10 +47,28 @@ public sealed class PlantEndpointsIntegrationTests : IAsyncLifetime
             FirstName = "Seeded",
             LastName = "User",
             Email = "seeded.user.integration@gardensystem.local",
+            PasswordHash = "not-used-in-this-test",
+            EmailVerified = true,
+            CreatedAtUtc = DateTime.UtcNow
+        });
+
+        dbContext.Users.Add(new User
+        {
+            UserId = OtherUserId,
+            FirstName = "Other",
+            LastName = "User",
+            Email = "other.user.integration@gardensystem.local",
+            PasswordHash = "not-used-in-this-test",
+            EmailVerified = true,
             CreatedAtUtc = DateTime.UtcNow
         });
 
         await dbContext.SaveChangesAsync();
+
+        var jwtTokenGenerator = scope.ServiceProvider.GetRequiredService<IJwtTokenGenerator>();
+        var accessToken = jwtTokenGenerator.GenerateAccessToken(SeededUserId, "seeded.user.integration@gardensystem.local");
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     }
 
     public async Task DisposeAsync()
@@ -188,6 +209,51 @@ public sealed class PlantEndpointsIntegrationTests : IAsyncLifetime
         Assert.Contains("requires 0.5m2", problem.Detail);
         Assert.Contains("only 0.3m2", problem.Detail);
         Assert.Contains("10m2 garden", problem.Detail);
+    }
+
+    [Fact]
+    public async Task GetGardens_WithoutBearerToken_ReturnsUnauthorized()
+    {
+        var factory = _factory ?? throw new InvalidOperationException("Test factory was not initialized.");
+        using var anonymousClient = factory.CreateClient();
+
+        var response = await anonymousClient.GetAsync("/api/v1/gardens");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetGarden_OwnedByAnotherUser_ReturnsNotFound()
+    {
+        var client = _client ?? throw new InvalidOperationException("Test client was not initialized.");
+        var factory = _factory ?? throw new InvalidOperationException("Test factory was not initialized.");
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<GardenDbContext>();
+
+        var otherUsersGarden = new Garden
+        {
+            GardenId = Guid.NewGuid(),
+            UserId = OtherUserId,
+            GardenName = "Someone Else's Garden",
+            TotalSurfaceArea = 10m,
+            LocationDescription = "Not yours",
+            TargetHumidityLevel = 50,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        dbContext.Gardens.Add(otherUsersGarden);
+        await dbContext.SaveChangesAsync();
+
+        var getResponse = await client.GetAsync($"/api/v1/gardens/{otherUsersGarden.GardenId}");
+        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+
+        var listResponse = await client.GetAsync("/api/v1/gardens");
+        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+
+        var gardens = await listResponse.Content.ReadFromJsonAsync<List<GardenResponseDto>>();
+        Assert.NotNull(gardens);
+        Assert.DoesNotContain(gardens!, garden => garden.GardenId == otherUsersGarden.GardenId);
     }
 
     private sealed class TestApiFactory(string connectionString) : WebApplicationFactory<Program>

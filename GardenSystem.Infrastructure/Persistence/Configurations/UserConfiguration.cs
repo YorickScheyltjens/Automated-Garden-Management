@@ -38,6 +38,13 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.EmailVerificationCodeExpiresAtUtc)
             .IsRequired(false);
 
+        builder.Property(x => x.RefreshTokenHash)
+            .HasMaxLength(64)
+            .IsRequired(false);
+
+        builder.Property(x => x.RefreshTokenExpiresAtUtc)
+            .IsRequired(false);
+
         builder.Property(x => x.CreatedAtUtc)
             .IsRequired();
 

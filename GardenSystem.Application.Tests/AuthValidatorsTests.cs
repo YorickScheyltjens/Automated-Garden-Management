@@ -61,4 +61,51 @@ public sealed class AuthValidatorsTests
 
         Assert.False(result.IsValid);
     }
+
+    [Fact]
+    public void LoginCommandValidator_WithValidCommand_IsValid()
+    {
+        var validator = new LoginCommandValidator();
+        var command = new LoginCommand("jane.doe@example.com", "supersecret1");
+
+        var result = validator.Validate(command);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Theory]
+    [InlineData("", "supersecret1")]
+    [InlineData("not-an-email", "supersecret1")]
+    [InlineData("jane.doe@example.com", "")]
+    public void LoginCommandValidator_WithInvalidInput_IsInvalid(string email, string password)
+    {
+        var validator = new LoginCommandValidator();
+        var command = new LoginCommand(email, password);
+
+        var result = validator.Validate(command);
+
+        Assert.False(result.IsValid);
+    }
+
+    [Fact]
+    public void RefreshCommandValidator_WithValidCommand_IsValid()
+    {
+        var validator = new RefreshCommandValidator();
+        var command = new RefreshCommand("some-refresh-token");
+
+        var result = validator.Validate(command);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void RefreshCommandValidator_WithEmptyToken_IsInvalid()
+    {
+        var validator = new RefreshCommandValidator();
+        var command = new RefreshCommand("");
+
+        var result = validator.Validate(command);
+
+        Assert.False(result.IsValid);
+    }
 }
