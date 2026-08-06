@@ -25,6 +25,7 @@ services:
       ConnectionStrings__DefaultConnection: ${POSTGRES_CONNECTION_STRING:-Host=db;Port=5432;Database=gardensystem;Username=gardensystem;Password=gardensystem}
       Smtp__Host: mailhog
       Smtp__Port: 1025
+      ApiKey__Key: ${API_KEY:-9eVHhevvA+1q+fqj/I7qWrPL0lO0CffVral6EoUg5t0=}
     ports:
       - "8080:8080"
     depends_on:
@@ -65,6 +66,7 @@ services:
     container_name: gardensystem-sensor-simulator
     environment:
       Api__BaseUrl: http://api:8080
+      ApiKey__Key: ${API_KEY:-9eVHhevvA+1q+fqj/I7qWrPL0lO0CffVral6EoUg5t0=}
       Mqtt__Host: rabbitmq
       Mqtt__Port: 1883
       Mqtt__Username: ${RABBITMQ_USER:-gardensystem}
