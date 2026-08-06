@@ -39,6 +39,7 @@ public sealed class ReportingRepository(GardenDbContext dbContext) : IReportingR
         periodStart = EnsureUtc(periodStart);
 
         return await dbContext.IrrigationEvents
+            .AsNoTracking()
             .Where(irrigationEvent => irrigationEvent.PlantId == plantId && irrigationEvent.StartTimeUtc >= periodStart)
             .OrderByDescending(irrigationEvent => irrigationEvent.StartTimeUtc)
             .ToListAsync(cancellationToken);

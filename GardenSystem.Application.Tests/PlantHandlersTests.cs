@@ -5,6 +5,7 @@ using GardenSystem.Application.Repositories;
 using GardenSystem.Domain.Entities;
 using GardenSystem.Domain.Enums;
 using GardenSystem.Domain.Exceptions;
+using Microsoft.Extensions.Caching.Memory;
 using Moq;
 
 namespace GardenSystem.Application.Tests;
@@ -104,7 +105,8 @@ public sealed class PlantHandlersTests
         var handler = new GetPlantByIdQueryHandler(
             plantRepositoryMock.Object,
             gardenRepositoryMock.Object,
-            currentUserProviderMock.Object);
+            currentUserProviderMock.Object,
+            BuildCache());
 
         await Assert.ThrowsAsync<NotFoundException>(() =>
             handler.Handle(new GetPlantByIdQuery(Guid.NewGuid()), CancellationToken.None));
@@ -170,7 +172,8 @@ public sealed class PlantHandlersTests
         var handler = new UpdatePlantCommandHandler(
             plantRepositoryMock.Object,
             gardenRepositoryMock.Object,
-            currentUserProviderMock.Object);
+            currentUserProviderMock.Object,
+            BuildCache());
 
         var result = await handler.Handle(
             new UpdatePlantCommand(
@@ -235,7 +238,8 @@ public sealed class PlantHandlersTests
         var handler = new DeletePlantCommandHandler(
             plantRepositoryMock.Object,
             gardenRepositoryMock.Object,
-            currentUserProviderMock.Object);
+            currentUserProviderMock.Object,
+            BuildCache());
 
         var result = await handler.Handle(new DeletePlantCommand(plantId), CancellationToken.None);
 
@@ -260,7 +264,7 @@ public sealed class PlantHandlersTests
             currentUserProviderMock.Object);
 
         await Assert.ThrowsAsync<NotFoundException>(() =>
-            handler.Handle(new ListPlantsByGardenIdQuery(Guid.NewGuid()), CancellationToken.None));
+            handler.Handle(new ListPlantsByGardenIdQuery(Guid.NewGuid(), 0, 20), CancellationToken.None));
     }
 
     [Fact]
@@ -348,7 +352,8 @@ public sealed class PlantHandlersTests
         var handler = new UpdatePlantCommandHandler(
             plantRepositoryMock.Object,
             gardenRepositoryMock.Object,
-            currentUserProviderMock.Object);
+            currentUserProviderMock.Object,
+            BuildCache());
 
         await Assert.ThrowsAsync<OvercrowdingException>(() =>
             handler.Handle(
@@ -407,7 +412,8 @@ public sealed class PlantHandlersTests
         var handler = new UpdatePlantCommandHandler(
             plantRepositoryMock.Object,
             gardenRepositoryMock.Object,
-            currentUserProviderMock.Object);
+            currentUserProviderMock.Object,
+            BuildCache());
 
         var exception = await Record.ExceptionAsync(() =>
             handler.Handle(
@@ -441,6 +447,8 @@ public sealed class PlantHandlersTests
             CreatedAtUtc = DateTime.UtcNow
         };
     }
+
+    private static IMemoryCache BuildCache() => new MemoryCache(new MemoryCacheOptions());
 
     private static Mock<ICurrentUserProvider> BuildCurrentUserProviderMock(Guid userId)
     {

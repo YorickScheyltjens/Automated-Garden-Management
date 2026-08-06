@@ -1,13 +1,16 @@
 using GardenSystem.Application.Abstractions;
+using GardenSystem.Application.Caching;
 using GardenSystem.Application.Repositories;
 using GardenSystem.Domain.Exceptions;
 using MediatR;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace GardenSystem.Application.Gardens.Commands;
 
 public sealed class UpdateGardenCommandHandler(
     IGardenRepository gardenRepository,
-    ICurrentUserProvider currentUserProvider) : IRequestHandler<UpdateGardenCommand, Dtos.GardenResponseDto>
+    ICurrentUserProvider currentUserProvider,
+    IMemoryCache cache) : IRequestHandler<UpdateGardenCommand, Dtos.GardenResponseDto>
 {
     public async Task<Dtos.GardenResponseDto> Handle(UpdateGardenCommand request, CancellationToken cancellationToken)
     {
@@ -26,6 +29,7 @@ public sealed class UpdateGardenCommandHandler(
         garden.TargetHumidityLevel = request.TargetHumidityLevel;
 
         await gardenRepository.UpdateAsync(garden, cancellationToken);
+        cache.Remove(CacheKeys.Garden(garden.GardenId));
 
         return garden.ToResponseDto();
     }

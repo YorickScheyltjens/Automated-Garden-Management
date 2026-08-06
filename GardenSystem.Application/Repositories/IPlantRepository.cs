@@ -6,6 +6,7 @@ public interface IPlantRepository
 {
     Task<Plant?> GetByIdAsync(Guid plantId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Plant>> ListByGardenIdAsync(Guid gardenId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Plant>> ListPageByGardenIdAsync(Guid gardenId, int skip, int take, CancellationToken cancellationToken = default);
     Task AddAsync(Plant plant, CancellationToken cancellationToken = default);
     Task UpdateAsync(Plant plant, CancellationToken cancellationToken = default);
     Task SoftDeleteAsync(Guid plantId, CancellationToken cancellationToken = default);

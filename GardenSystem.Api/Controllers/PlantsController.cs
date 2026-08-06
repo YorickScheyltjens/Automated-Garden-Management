@@ -15,6 +15,10 @@ public sealed class PlantsController(IMediator mediator) : ControllerBase
     /// <summary>
     /// Lists plants for a specific garden owned by the current user.
     /// </summary>
+    /// <param name="gardenId"></param>
+    /// <param name="skip">Number of plants to skip. Defaults to 0.</param>
+    /// <param name="take">Maximum number of plants to return. Defaults to 20, capped at 100.</param>
+    /// <param name="cancellationToken"></param>
     /// <response code="200">Returns the garden's plants.</response>
     /// <response code="400">The request was invalid.</response>
     /// <response code="404">The garden was not found.</response>
@@ -24,9 +28,12 @@ public sealed class PlantsController(IMediator mediator) : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IReadOnlyList<PlantResponseDto>>> ListPlantsByGardenId(
         Guid gardenId,
-        CancellationToken cancellationToken)
+        [FromQuery] int skip,
+        [FromQuery] int take = 20,
+        CancellationToken cancellationToken = default)
     {
-        var result = await mediator.Send(new ListPlantsByGardenIdQuery(gardenId), cancellationToken);
+        var query = new ListPlantsByGardenIdQuery(gardenId, Math.Max(0, skip), Math.Clamp(take, 1, 100));
+        var result = await mediator.Send(query, cancellationToken);
         return Ok(result);
     }
 

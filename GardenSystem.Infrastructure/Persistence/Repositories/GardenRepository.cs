@@ -9,14 +9,28 @@ public sealed class GardenRepository(GardenDbContext dbContext) : IGardenReposit
     public async Task<Garden?> GetByIdAsync(Guid gardenId, CancellationToken cancellationToken = default)
     {
         return await dbContext.Gardens
+            .AsNoTracking()
             .FirstOrDefaultAsync(g => g.GardenId == gardenId, cancellationToken);
     }
 
     public async Task<IReadOnlyList<Garden>> ListByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return await dbContext.Gardens
+            .AsNoTracking()
             .Where(g => g.UserId == userId)
             .OrderBy(g => g.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Garden>> ListPageByUserIdAsync(
+        Guid userId, int skip, int take, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Gardens
+            .AsNoTracking()
+            .Where(g => g.UserId == userId)
+            .OrderBy(g => g.CreatedAtUtc)
+            .Skip(skip)
+            .Take(take)
             .ToListAsync(cancellationToken);
     }
 

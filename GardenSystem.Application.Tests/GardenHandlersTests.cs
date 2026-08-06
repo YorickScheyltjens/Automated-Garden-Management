@@ -4,6 +4,7 @@ using GardenSystem.Application.Gardens.Queries;
 using GardenSystem.Application.Repositories;
 using GardenSystem.Domain.Entities;
 using GardenSystem.Domain.Exceptions;
+using Microsoft.Extensions.Caching.Memory;
 using Moq;
 
 namespace GardenSystem.Application.Tests;
@@ -48,7 +49,7 @@ public sealed class GardenHandlersTests
             .Setup(x => x.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Garden?)null);
 
-        var handler = new UpdateGardenCommandHandler(repositoryMock.Object, currentUserProviderMock.Object);
+        var handler = new UpdateGardenCommandHandler(repositoryMock.Object, currentUserProviderMock.Object, BuildCache());
         var command = new UpdateGardenCommand(Guid.NewGuid(), "Updated", 22m, "Updated", null, null, 55);
 
         await Assert.ThrowsAsync<NotFoundException>(() => handler.Handle(command, CancellationToken.None));
@@ -73,7 +74,7 @@ public sealed class GardenHandlersTests
                 CreatedAtUtc = DateTime.UtcNow
             });
 
-        var handler = new UpdateGardenCommandHandler(repositoryMock.Object, currentUserProviderMock.Object);
+        var handler = new UpdateGardenCommandHandler(repositoryMock.Object, currentUserProviderMock.Object, BuildCache());
         var command = new UpdateGardenCommand(Guid.NewGuid(), "Updated", 22m, "Updated", null, null, 55);
 
         await Assert.ThrowsAsync<NotFoundException>(() => handler.Handle(command, CancellationToken.None));
@@ -105,7 +106,7 @@ public sealed class GardenHandlersTests
             .Setup(x => x.UpdateAsync(existingGarden, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var handler = new UpdateGardenCommandHandler(repositoryMock.Object, currentUserProviderMock.Object);
+        var handler = new UpdateGardenCommandHandler(repositoryMock.Object, currentUserProviderMock.Object, BuildCache());
         var command = new UpdateGardenCommand(gardenId, "New Name", 30m, "North side", 51m, 4m, 70);
 
         var result = await handler.Handle(command, CancellationToken.None);
@@ -127,7 +128,7 @@ public sealed class GardenHandlersTests
             .Setup(x => x.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Garden?)null);
 
-        var handler = new DeleteGardenCommandHandler(repositoryMock.Object, currentUserProviderMock.Object);
+        var handler = new DeleteGardenCommandHandler(repositoryMock.Object, currentUserProviderMock.Object, BuildCache());
 
         await Assert.ThrowsAsync<NotFoundException>(() =>
             handler.Handle(new DeleteGardenCommand(Guid.NewGuid()), CancellationToken.None));
@@ -157,7 +158,7 @@ public sealed class GardenHandlersTests
             .Setup(x => x.SoftDeleteAsync(gardenId, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var handler = new DeleteGardenCommandHandler(repositoryMock.Object, currentUserProviderMock.Object);
+        var handler = new DeleteGardenCommandHandler(repositoryMock.Object, currentUserProviderMock.Object, BuildCache());
 
         var result = await handler.Handle(new DeleteGardenCommand(gardenId), CancellationToken.None);
 
@@ -185,7 +186,7 @@ public sealed class GardenHandlersTests
                 CreatedAtUtc = DateTime.UtcNow
             });
 
-        var handler = new GetGardenByIdQueryHandler(repositoryMock.Object, currentUserProviderMock.Object);
+        var handler = new GetGardenByIdQueryHandler(repositoryMock.Object, currentUserProviderMock.Object, BuildCache());
 
         var result = await handler.Handle(new GetGardenByIdQuery(gardenId), CancellationToken.None);
 
@@ -203,7 +204,7 @@ public sealed class GardenHandlersTests
             .Setup(x => x.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Garden?)null);
 
-        var handler = new GetGardenByIdQueryHandler(repositoryMock.Object, currentUserProviderMock.Object);
+        var handler = new GetGardenByIdQueryHandler(repositoryMock.Object, currentUserProviderMock.Object, BuildCache());
 
         await Assert.ThrowsAsync<NotFoundException>(() =>
             handler.Handle(new GetGardenByIdQuery(Guid.NewGuid()), CancellationToken.None));
@@ -216,7 +217,7 @@ public sealed class GardenHandlersTests
         var currentUserProviderMock = BuildCurrentUserProviderMock(CurrentUserId);
 
         repositoryMock
-            .Setup(x => x.ListByUserIdAsync(CurrentUserId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.ListPageByUserIdAsync(CurrentUserId, 0, 20, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Garden>
             {
                 new()
@@ -243,11 +244,13 @@ public sealed class GardenHandlersTests
 
         var handler = new ListGardensByUserIdQueryHandler(repositoryMock.Object, currentUserProviderMock.Object);
 
-        var result = await handler.Handle(new ListGardensByUserIdQuery(), CancellationToken.None);
+        var result = await handler.Handle(new ListGardensByUserIdQuery(0, 20), CancellationToken.None);
 
         Assert.Equal(2, result.Count);
-        repositoryMock.Verify(x => x.ListByUserIdAsync(CurrentUserId, It.IsAny<CancellationToken>()), Times.Once);
+        repositoryMock.Verify(x => x.ListPageByUserIdAsync(CurrentUserId, 0, 20, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    private static IMemoryCache BuildCache() => new MemoryCache(new MemoryCacheOptions());
 
     private static Mock<ICurrentUserProvider> BuildCurrentUserProviderMock(Guid userId)
     {

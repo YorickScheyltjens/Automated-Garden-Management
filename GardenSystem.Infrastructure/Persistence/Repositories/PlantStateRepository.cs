@@ -9,6 +9,7 @@ public sealed class PlantStateRepository(GardenDbContext dbContext) : IPlantStat
     public async Task<PlantState?> GetByPlantIdAsync(Guid plantId, CancellationToken cancellationToken = default)
     {
         return await dbContext.PlantStates
+            .AsNoTracking()
             .FirstOrDefaultAsync(p => p.PlantId == plantId, cancellationToken);
     }
 

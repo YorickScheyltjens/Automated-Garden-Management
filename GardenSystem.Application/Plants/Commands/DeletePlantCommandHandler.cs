@@ -1,14 +1,17 @@
 using GardenSystem.Application.Abstractions;
+using GardenSystem.Application.Caching;
 using GardenSystem.Application.Repositories;
 using GardenSystem.Domain.Exceptions;
 using MediatR;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace GardenSystem.Application.Plants.Commands;
 
 public sealed class DeletePlantCommandHandler(
     IPlantRepository plantRepository,
     IGardenRepository gardenRepository,
-    ICurrentUserProvider currentUserProvider) : IRequestHandler<DeletePlantCommand, Unit>
+    ICurrentUserProvider currentUserProvider,
+    IMemoryCache cache) : IRequestHandler<DeletePlantCommand, Unit>
 {
     public async Task<Unit> Handle(DeletePlantCommand request, CancellationToken cancellationToken)
     {
@@ -25,6 +28,7 @@ public sealed class DeletePlantCommandHandler(
         }
 
         await plantRepository.SoftDeleteAsync(request.PlantId, cancellationToken);
+        cache.Remove(CacheKeys.Plant(request.PlantId));
 
         return Unit.Value;
     }

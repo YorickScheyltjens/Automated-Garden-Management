@@ -18,7 +18,7 @@ public sealed class ListPlantsByGardenIdQueryHandler(
             throw new NotFoundException($"Garden with id '{request.GardenId}' was not found.");
         }
 
-        var plants = await plantRepository.ListByGardenIdAsync(request.GardenId, cancellationToken);
+        var plants = await plantRepository.ListPageByGardenIdAsync(request.GardenId, request.Skip, request.Take, cancellationToken);
 
         return plants
             .Select(plant => plant.ToResponseDto())

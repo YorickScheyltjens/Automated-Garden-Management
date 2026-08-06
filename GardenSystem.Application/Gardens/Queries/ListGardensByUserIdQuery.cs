@@ -3,4 +3,4 @@ using MediatR;
 
 namespace GardenSystem.Application.Gardens.Queries;
 
-public sealed record ListGardensByUserIdQuery : IRequest<IReadOnlyList<GardenResponseDto>>;
+public sealed record ListGardensByUserIdQuery(int Skip, int Take) : IRequest<IReadOnlyList<GardenResponseDto>>;

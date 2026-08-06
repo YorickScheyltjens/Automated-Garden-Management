@@ -9,6 +9,7 @@ public sealed class IrrigationEventRepository(GardenDbContext dbContext) : IIrri
     public async Task<IrrigationEvent?> GetOpenEventByPlantIdAsync(Guid plantId, CancellationToken cancellationToken = default)
     {
         return await dbContext.IrrigationEvents
+            .AsNoTracking()
             .Where(e => e.PlantId == plantId && e.EndTimeUtc == null)
             .OrderByDescending(e => e.StartTimeUtc)
             .FirstOrDefaultAsync(cancellationToken);

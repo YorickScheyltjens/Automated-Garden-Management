@@ -6,6 +6,7 @@ using GardenSystem.Api.Security;
 using GardenSystem.Infrastructure;
 using GardenSystem.Infrastructure.Configuration;
 using GardenSystem.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -30,8 +31,18 @@ var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("Configuration key 'Jwt:Secret' was not found.");
 
 builder.Services.AddOptions<JwtOptions>().Bind(builder.Configuration.GetSection("Jwt"));
+builder.Services.AddOptions<GardenSystem.Api.Security.ApiKeyOptions>().Bind(builder.Configuration.GetSection("ApiKey"));
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+const string AuthSchemeSelectorName = "AuthSchemeSelector";
+
+builder.Services.AddAuthentication(AuthSchemeSelectorName)
+    .AddPolicyScheme(AuthSchemeSelectorName, AuthSchemeSelectorName, options =>
+    {
+        options.ForwardDefaultSelector = context =>
+            context.Request.Headers.ContainsKey(ApiKeyAuthenticationHandler.HeaderName)
+                ? ApiKeyAuthenticationHandler.SchemeName
+                : JwtBearerDefaults.AuthenticationScheme;
+    })
     .AddJwtBearer(options =>
     {
         options.MapInboundClaims = false;
@@ -43,7 +54,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
         };
-    });
+    })
+    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SchemeName, _ => { });
 
 builder.Services.AddAuthorization();
 

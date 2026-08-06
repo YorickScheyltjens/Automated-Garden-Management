@@ -9,12 +9,14 @@ public sealed class UserRepository(GardenDbContext dbContext) : IUserRepository
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         return await dbContext.Users
+            .AsNoTracking()
             .FirstOrDefaultAsync(user => user.Email == email, cancellationToken);
     }
 
     public async Task<User?> GetByRefreshTokenHashAsync(string refreshTokenHash, CancellationToken cancellationToken = default)
     {
         return await dbContext.Users
+            .AsNoTracking()
             .FirstOrDefaultAsync(user => user.RefreshTokenHash == refreshTokenHash, cancellationToken);
     }
 

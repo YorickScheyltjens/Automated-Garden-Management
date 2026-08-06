@@ -10,7 +10,8 @@ public sealed class ListGardensByUserIdQueryHandler(
 {
     public async Task<IReadOnlyList<Dtos.GardenResponseDto>> Handle(ListGardensByUserIdQuery request, CancellationToken cancellationToken)
     {
-        var gardens = await gardenRepository.ListByUserIdAsync(currentUserProvider.GetCurrentUserId(), cancellationToken);
+        var gardens = await gardenRepository.ListPageByUserIdAsync(
+            currentUserProvider.GetCurrentUserId(), request.Skip, request.Take, cancellationToken);
 
         return gardens
             .Select(garden => garden.ToResponseDto())
